@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অ্যাডমিন ড্যাশবোর্ড - দেশি অফার</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body class="dark-mode">
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <div class="login-header">
+            <h2 style="color: #00ffff; margin-bottom: 5px;">অ্যাডমিন প্যানেল</h2>
+            <p style="color: #888; font-size: 12px;">আপনার গোপন তথ্য দিয়ে প্রবেশ করুন</p>
+        </div>
+        <input type="text" id="adminUser" placeholder="ইউজার নেম">
+        <input type="password" id="adminPass" placeholder="পাসওয়ার্ড">
+        <button onclick="adminLogin()">🔓 লগইন করুন</button>
+        <p id="loginError" class="error-txt">ভুল তথ্য দিয়েছেন!</p>
+    </div>
+</div>
+
+<div id="mainAdminContent" class="hidden">
+    <header class="header-content">
+        <div class="brand">
+            <h2 style="margin: 0; color: #00ffff; font-size: 20px;">Control Panel</h2>
+            <span id="offer-count" class="badge">মোট অফারঃ ০</span>
+        </div>
+    </header>
+<div id="adminAuthSection" style="padding: 20px; text-align: center; background: #1a1a1a; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333;">
+    <h3 style="color: #fff; margin-bottom: 15px;">অ্যাডমিন এক্সেস</h3>
+    <button onclick="adminLogin()" style="background: white; color: black; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; border: none; cursor: pointer; margin: 0 auto;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+        Google দিয়ে লগইন করুন
+    </button>
+    <p id="adminStatusText" style="color: #ff4b2b; margin-top: 10px; font-size: 13px;">আপনি এখনো লগইন করেননি</p>
+</div>
+
+    <div class="admin-dashboard">
+        <div id="dhaka-notice-display" style="display:none; margin: 20px; padding: 15px; border-radius: 15px; border: 2px solid #ff0055; background: #000; box-shadow: 0 0 15px #ff0055;">
+            <h3 style="color: #ff0055; margin: 0 0 5px 0; font-size: 16px;">🔥 ধামাকা অফার:</h3>
+            <p id="noticeTextShow" style="color: #fff; margin: 0; font-size: 14px; font-weight: bold;"></p>
+        </div>
+
+        <div class="top-action-grid">
+            <div class="action-card dhaka-btn" onclick="openModal('noticeModal')">
+                <div class="icon-circle">📢</div>
+                <p>ধামাকা অফার</p>
+            </div>
+            <div class="action-card add-btn-main" onclick="openModal('addOfferModal')">
+                <div class="icon-circle">➕</div>
+                <p>অফার যোগ করুন</p>
+            </div>
+            <div class="action-card order-btn" onclick="openModal('orderListModal')" style="background: linear-gradient(135deg, #00ffaa, #008855); position: relative;">
+                <div class="icon-circle">📩</div>
+                <p>অর্ডার দেখুন</p>
+                <span id="order-pending-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; font-size: 10px; padding: 2px 8px; border-radius: 50%; display: none; font-weight: bold; border: 2px solid #fff;">0</span>
+            </div>
+        </div>
+<div class="admin-card" style="margin-top: 20px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333;">
+    <h3 style="color: #00f2fe; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+        👥 সকল ইউজার লিস্ট <span id="user-count-badge" style="background: #ff4b2b; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px;">0</span>
+    </h3>
+    <div id="adminUserList" style="max-height: 400px; overflow-y: auto;">
+        </div>
+</div>
+
+        <h3 class="section-title">অপারেটর সিলেক্ট করুন</h3>
+        <div class="sim-container">
+            <div class="sim-card gp-theme" onclick="loadAdminOffers('Grameenphone')">
+                <img src="gp.png" class="op-logo">
+                <span class="sim-name">Grameenphone</span>
+            </div>
+            <div class="sim-card robi-theme" onclick="loadAdminOffers('Robi')">
+                <img src="rb.png" class="op-logo">
+                <span class="sim-name">Robi</span>
+            </div>
+            <div class="sim-card bl-theme" onclick="loadAdminOffers('Banglalink')">
+                <img src="bl.png" class="op-logo">
+                <span class="sim-name">Banglalink</span>
+            </div>
+            <div class="sim-card airtel-theme" onclick="loadAdminOffers('Airtel')">
+                <img src="ar.png" class="op-logo">
+                <span class="sim-name">Airtel</span>
+            </div>
+            <div class="sim-card teletalk-theme" onclick="loadAdminOffers('Teletalk')">
+                <img src="tl.png" class="op-logo">
+                <span class="sim-name">Teletalk</span>
+            </div>
+            <div class="sim-card skitto-theme" onclick="loadAdminOffers('Skitto')">
+                <img src="sk.png" class="op-logo">
+                <span class="sim-name">Skitto</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="orderListModal" class="modal hidden">
+    <div class="modal-content full-view">
+        <div class="modal-nav">
+            <button class="back-nav-btn" onclick="closeModal('orderListModal'); playClick();">⬅ পিছনে</button>
+            <h3 style="margin: 0; flex: 1; text-align: center;">ইউজার অর্ডারসমূহ</h3>
+        </div>
+        <div id="adminOrderList" class="scroll-area" style="padding: 10px;">
+            <p style="text-align: center; color: #888; padding: 20px;">অর্ডার লোড হচ্ছে...</p>
+        </div>
+        <button onclick="closeModal('orderListModal'); playClick();" class="footer-back-btn">ফিরে যান</button>
+    </div>
+</div>
+
+<div id="viewOffersModal" class="modal hidden">
+    <div class="modal-content full-view">
+        <div class="modal-nav">
+            <button class="back-nav-btn" onclick="closeModal('viewOffersModal'); playClick();">⬅ পিছনে</button>
+            <h3 id="viewSimTitle" style="margin: 0; flex: 1; text-align: center;">অফার লিস্ট</h3>
+        </div>
+        <div id="admin-offer-list-modal" class="scroll-area"></div>
+        <button onclick="closeModal('viewOffersModal'); playClick();" class="footer-back-btn">ফিরে যান</button>
+    </div>
+</div>
+
+<div id="addOfferModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-nav">
+            <button class="back-nav-btn" onclick="closeModal('addOfferModal'); playClick();">⬅ পিছনে</button>
+            <h3 style="margin: 0; flex: 1; text-align: center;">নতুন অফার</h3>
+        </div>
+        <div class="form-group">
+            <input type="text" id="offTitle" placeholder="অফারের নাম">
+            <input type="number" id="offDokanPrice" placeholder="দোকান রেট (৳)">
+            <input type="text" id="offCondition" placeholder="শর্ত (যেমন: অল বিডি)">
+            <select id="offDays">
+                <option value="7">৭ দিন</option>
+                <option value="15">১৫ দিন</option>
+                <option value="30">৩০ দিন</option>
+            </select>
+            <input type="number" id="offPrice" placeholder="আমাদের রেট (৳)">
+            <select id="offOperator">
+                <option value="Grameenphone">Grameenphone</option>
+                <option value="Robi">Robi</option>
+                <option value="Banglalink">Banglalink</option>
+                <option value="Airtel">Airtel</option>
+                <option value="Teletalk">Teletalk</option>
+                <option value="Skitto">Skitto</option>
+            </select>
+            <button onclick="addOffer()" class="submit-btn">পাবলিশ করুন</button>
+        </div>
+    </div>
+</div>
+
+<div id="noticeModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-nav">
+            <button class="back-nav-btn" onclick="closeModal('noticeModal'); playClick();">⬅ পিছনে</button>
+            <h3 style="margin: 0; flex: 1; text-align: center;">ধামাকা অফার সেটআপ</h3>
+        </div>
+        <div class="form-group">
+            <textarea id="noticeText" rows="3" placeholder="অফারের নাম লিখুন (যেমন: ৫০ জিবি ১০০০ মিনিট)"></textarea>
+            
+            <input type="number" id="noticePrice" placeholder="অফারের দাম (৳)">
+            <input type="number" id="noticeDays" placeholder="মেয়াদ (কত দিন)">
+            
+            <button onclick="updateNotice()" class="submit-btn">পাবলিশ ধামাকা অফার</button>
+            <button onclick="deleteNotice()" class="delete-action-btn">অফার মুছে ফেলুন</button>
+        </div>
+    </div>
+</div>
+
+<audio id="sndClick" src="mr1.mp3"></audio>
+<audio id="sndDelete" src="mr2.mp3"></audio>
+<audio id="sndSuccess" src="mr3.mp3"></audio>
+
+<div id="toast" style="position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: #00ffff; color: #000; padding: 12px 25px; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4); z-index: 10000; transition: top 0.5s ease-in-out;"></div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="admin-script.js"></script>
+</body>
+</html>
