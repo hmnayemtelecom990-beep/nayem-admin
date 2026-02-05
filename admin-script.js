@@ -1,4 +1,4 @@
-// ১. ফায়ারবেস কনফিগারেশন (আপনার দেওয়া কনফিগারেশন)
+// ১. ফায়ারবেস কনফিগারেশন
 var firebaseConfig = {
   apiKey: "AIzaSyAHO3ZPYWzTyEcPPNXv4rlxq4ut9fqfeJg",
   authDomain: "hmnayem-b9e55.firebaseapp.com",
@@ -13,24 +13,51 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 /* =========================================================
-   🔒 মাস্টার সিকিউরিটি (স্থায়ী জিমেইল সিস্টেম)
+   🔒 সিকিউরিটি এবং মেমোরি সিস্টেম
 ============================================================ */
 const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; 
+
+// অ্যাপ চালু হওয়ার সময় মেমোরি থেকে জিমেইল টেনে আনা
 let currentAdminEmail = localStorage.getItem('masterAdminEmail') || ""; 
 
-// পারমিশন চেক ফাংশন
+// বাটন কাজ করার পারমিশন চেক
 function checkPermission() {
-    // মেমোরি থেকে জিমেইল চেক করছে
     let savedEmail = localStorage.getItem('masterAdminEmail') || "";
     if (savedEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase().trim()) {
         return true;
     } else {
-        alert("🚨 আগে গুগল লগইন করুন!\nবর্তমানে ভেরিফাইড জিমেইল নেই।");
+        alert("🚨 অনুমতি নেই! আগে গুগল লগইন করে জিমেইল ভেরিফাই করুন।");
         return false;
     }
 }
 
-// ২. অ্যাডমিন লগইন (ইউজারনেম ও পাসওয়ার্ড - এটি প্রতিবার চাইবে)
+// ২. গুগল লগইন (একবার করলেই হবে)
+function adminGoogleAuth() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).then((result) => {
+        let user = result.user;
+        currentAdminEmail = user.email.toLowerCase().trim();
+        
+        // মেমোরিতে সেভ
+        localStorage.setItem('masterAdminEmail', currentAdminEmail);
+        
+        playSuccess();
+        alert("✅ ভেরিফিকেশন সফল এবং স্থায়ীভাবে সেভ হয়েছে!");
+        showProfileDisplay();
+    }).catch((error) => {
+        alert("❌ গুগল লগইন ব্যর্থ: " + error.message);
+    });
+}
+
+function showProfileDisplay() {
+    const profileInfo = document.getElementById('adminProfileInfo');
+    if(profileInfo && currentAdminEmail) {
+        profileInfo.style.display = "block";
+        profileInfo.innerHTML = `লগইনঃ <b>${currentAdminEmail}</b>`;
+    }
+}
+
+// ৩. পাসওয়ার্ড লগইন (Hm, nm - প্রতিবার চাইবে)
 function checkLogin() {
   const user = document.getElementById('adminUser').value;
   const pass = document.getElementById('adminPass').value;
@@ -40,84 +67,61 @@ function checkLogin() {
     document.getElementById('loginOverlay').classList.add('hidden');
     document.getElementById('mainAdminContent').classList.remove('hidden');
     
-    // সেশনে সেভ করছি না, যাতে বের হয়ে গেলে আবার পাসওয়ার্ড চায়
+    // ডাটা লোড করা শুরু
     loadTotalCount();
     loadNoticeDisplay();
     loadAllOrders(); 
+    showProfileDisplay();
     
-    // আগে জিমেইল সেভ করা থাকলে প্রোফাইলে দেখাবে
-    if(currentAdminEmail) {
-        const profileInfo = document.getElementById('adminProfileInfo');
-        if(profileInfo) {
-            profileInfo.style.display = "block";
-            profileInfo.innerHTML = `ভেরিফাইড: <b>${currentAdminEmail}</b>`;
-        }
-    }
-    showToast("লগইন সফল! 🔓");
+    showToast("স্বাগতম সোনা ভাই! 🔓");
   } else {
     showToast("ভুল ইউজারনেম বা পাসওয়ার্ড! ❌");
   }
 }
 
-// অ্যাপ খুললে সবসময় লগইন পেজ দেখাবে
-window.onload = function() {
-    document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('mainAdminContent').classList.add('hidden');
-};
-
-// ৩. গুগল লগইন (একবার করলেই মেমোরিতে সেভ হয়ে থাকবে)
-function adminGoogleAuth() {
-    var provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then((result) => {
-        let user = result.user;
-        currentAdminEmail = user.email.toLowerCase().trim();
+// ৪. অর্ডার ম্যানেজমেন্ট (বাটনগুলো এখন কাজ করবে)
+function loadAllOrders() {
+    db.ref('orders').on('value', snap => {
+        const list = document.getElementById('adminOrderList');
+        if (!list) return;
+        list.innerHTML = "";
         
-        // মেমোরিতে সেভ করে রাখছি
-        localStorage.setItem('masterAdminEmail', currentAdminEmail);
-        
-        playSuccess();
-        alert("✅ জিমেইল ভেরিফিকেশন সফল এবং সেভ হয়েছে!");
-        
-        const profileInfo = document.getElementById('adminProfileInfo');
-        if(profileInfo) {
-            profileInfo.style.display = "block";
-            profileInfo.innerHTML = `ভেরিফাইড: <b>${user.email}</b>`;
+        if (!snap.exists()) {
+            list.innerHTML = '<p style="text-align:center; color:#888;">কোনো অর্ডার নেই!</p>';
+            return;
         }
-    }).catch((error) => {
-        alert("❌ লগইন ব্যর্থ: " + error.message);
+
+        snap.forEach(child => {
+            let o = child.val();
+            let key = child.key;
+            list.innerHTML += `
+                <div class="order-card-item" style="background:#121212; padding:12px; border-radius:10px; margin-bottom:10px; border-left:4px solid ${o.status==='Success'?'#28a745':'#ffcc00'};">
+                    <div style="color:#00ffff; font-size:12px;">ID: ${o.customerId} | Status: ${o.status}</div>
+                    <div style="color:#fff; margin:5px 0;">${o.offerName}</div>
+                    <div style="color:#aaa; font-size:11px;">📱 ${o.targetNumber} | 💰 ৳${o.price}</div>
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <button onclick="updateStatus('${key}', 'Success')" style="background:#28a745; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer;">সাকসেস</button>
+                        <button onclick="updateStatus('${key}', 'Rejected')" style="background:#ff4b2b; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer;">রিজেক্ট</button>
+                    </div>
+                </div>`;
+        });
     });
 }
 
-// ৪. মডাল ও অন্যান্য ফাংশন (সব আগের মতো রাখা হয়েছে)
-function openModal(id) {
-    document.getElementById(id).classList.remove('hidden');
-    playClick();
-    if(id === 'userListModal') { loadUserList(); }
-}
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    if(toast) {
-        toast.innerText = message;
-        toast.style.top = "20px";
-        setTimeout(() => { toast.style.top = "-100px"; }, 3000);
-    }
-}
-
-// পারমিশন চেক দিয়ে ডাটা আপডেট
 function updateStatus(key, status) {
     if (!checkPermission()) return; 
     db.ref('orders/' + key).update({ status: status }).then(() => {
         if(status === "Success") playSuccess();
-        showToast("অর্ডার " + status + " হয়েছে!");
+        showToast("অর্ডার " + status + " হয়েছে! ✅");
     });
 }
 
+// ৫. অফার ম্যানেজমেন্ট
 function deleteOffer(op, d, id) {
   if (!checkPermission()) return; 
-  if (confirm("ডিলিট করতে চান?")) {
+  if (confirm("অফারটি ডিলিট করতে চান?")) {
     db.ref('offers/' + op + '/' + d + '/' + id).remove().then(() => {
-        showToast("ডিলিট হয়েছে!");
+        showToast("ডিলিট হয়েছে! 🗑️");
     });
   }
 }
@@ -129,7 +133,7 @@ function addOffer() {
   const operator = document.getElementById('offOperator').value;
   const days = document.getElementById('offDays').value;
 
-  if (!title || !price) { showToast("তথ্য দিন! ⚠️"); return; }
+  if (!title || !price) { showToast("তথ্য পূরণ করুন! ⚠️"); return; }
 
   const data = { id: Date.now().toString(), title: title, price: price, operator: operator, days: days };
   db.ref('offers/' + operator + '/' + days + '/' + data.id).set(data).then(() => {
@@ -137,19 +141,33 @@ function addOffer() {
   });
 }
 
-// সাউন্ড ফাংশন
+// ৬. অন্যান্য জরুরি ফাংশন
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if(toast) {
+        toast.innerText = message;
+        toast.style.top = "20px";
+        setTimeout(() => { toast.style.top = "-100px"; }, 3000);
+    }
+}
+
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); playClick(); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function playClick() { document.getElementById('sndClick').play(); }
 function playDel() { document.getElementById('sndDelete').play(); }
 function playSuccess() { document.getElementById('sndSuccess').play(); }
 
-// বাকি লোডিং ফাংশনগুলো আগের কোড থেকে নিয়ে নিন...
-function loadTotalCount() { 
-    db.ref('offers').on('value', snap => { 
-        let count = 0; 
-        snap.forEach(op => { op.forEach(day => { count += day.numChildren(); }); }); 
-        document.getElementById('offer-count').innerText = "মোট অফারঃ " + count; 
-    }); 
+window.onload = function() {
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    document.getElementById('mainAdminContent').classList.add('hidden');
+};
+
+// ডাটাবেস কাউন্ট লোড
+function loadTotalCount() {
+    db.ref('offers').on('value', snap => {
+        let count = 0;
+        snap.forEach(op => { op.forEach(day => { count += day.numChildren(); }); });
+        document.getElementById('offer-count').innerText = "মোট অফারঃ " + count;
+    });
 }
-function loadNoticeDisplay() { /* আপনার নোটিশ লোড কোড */ }
-function loadUserList() { /* আপনার ইউজার লিস্ট কোড */ }
-function loadAllOrders() { /* আপনার অর্ডার লিস্ট কোড */ }
+function loadNoticeDisplay() { /* নোটিশ কোড */ }
