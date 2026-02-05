@@ -15,27 +15,27 @@ const db = firebase.database();
 /* =========================================================
    🔒 মাস্টার সিকিউরিটি ভেরিয়েবল
 ============================================================ */
-const MASTER_ADMIN_EMAIL = "your-email@gmail.com"; // 👈 এখানে আপনার নিজের জিমেইলটি দিন
+const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; // 👈 এখানে আপনার জিমেইলটি নির্ভুলভাবে আছে
 let currentAdminEmail = ""; // বর্তমানে লগইন করা ইমেইল এখানে জমা থাকবে
 
 // পারমিশন চেক ফাংশন
 function checkPermission() {
-    if (currentAdminEmail === MASTER_ADMIN_EMAIL) {
+    if (currentAdminEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase().trim()) {
         return true;
     } else {
         showToast("আপনার এই কাজ করার অনুমতি নেই! 🚫");
-        playDel(); // ওয়ার্নিং সাউন্ডের জন্য
+        playDel(); // ওয়ার্নিং সাউন্ড
         return false;
     }
 }
 
-// নতুন টোস্ট ফাংশন
+// নতুন টোস্ট ফাংশন (এনিমেশন নোটিফিকেশন)
 function showToast(message) {
     const toast = document.getElementById('toast');
     if(toast) {
         toast.innerText = message;
-        toast.style.top = "20px";
-        setTimeout(() => { toast.style.top = "-100px"; }, 3000);
+        toast.style.top = "20px"; // টোস্ট দেখাবে
+        setTimeout(() => { toast.style.top = "-100px"; }, 3000); // ৩ সেকেন্ড পর লুকাবে
     }
 }
 
@@ -316,24 +316,30 @@ function loadNoticeDisplay() {
 }
 
 /* =========================================================
-   🔐 অ্যাডমিন গুগল অথেন্টিকেশন লজিক
+   🔐 অ্যাডমিন গুগল অথেন্টিকেশন লজিক (আপডেট করা)
 ============================================================ */
 function adminGoogleAuth() {
     var provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider).then((result) => {
         let user = result.user;
-        currentAdminEmail = user.email; // বর্তমান ইমেইল সেভ করা হলো
+        
+        // এখানে ইমেইলটি ছোট হাতের করা হয়েছে যাতে মাস্টার ইমেইলের সাথে মিলে যায়
+        currentAdminEmail = user.email.toLowerCase().trim(); 
         
         playSuccess();
         showToast("গুগল ভেরিফিকেশন সফল! ✅");
         
         const profileInfo = document.getElementById('adminProfileInfo');
-        profileInfo.style.display = "block";
-        profileInfo.innerHTML = `
-            <img src="${user.photoURL}" style="width:30px; border-radius:50%; vertical-align:middle; margin-right:5px;">
-            লগইন আছেন: <b>${user.email}</b>
-        `;
+        if(profileInfo) {
+            profileInfo.style.display = "block";
+            profileInfo.innerHTML = `
+                <img src="${user.photoURL}" style="width:30px; border-radius:50%; vertical-align:middle; margin-right:5px;">
+                লগইন আছেন: <b>${user.email}</b>
+            `;
+        }
+        console.log("Logged In As Master:", currentAdminEmail);
     }).catch((error) => {
         showToast("গুগল লগইন ব্যর্থ! ❌");
+        console.error(error);
     });
 }
