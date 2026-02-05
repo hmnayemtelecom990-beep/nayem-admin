@@ -356,3 +356,25 @@ function loadNoticeDisplay() {
 }
 
 function copyNum(text) { navigator.clipboard.writeText(text).then(() => { showToast("কপি হয়েছে! 📋"); playClick(); }); }
+// ১০. অর্ডার অ্যাকশন কন্ট্রোল (বাটন ফিক্স)
+function updateOrderStatus(key, newStatus) {
+    if (!checkPermission()) return;
+    db.ref('allOrders/' + key).update({ status: newStatus })
+    .then(() => { playSuccess(); showToast("স্ট্যাটাস আপডেট হয়েছে!"); });
+}
+
+function completeOrderAction(key) {
+    if (!checkPermission()) return;
+    if (confirm("অর্ডারটি সাকসেস করতে চান?")) {
+        db.ref('allOrders/' + key).update({ status: "Success" })
+        .then(() => { playSuccess(); showToast("অর্ডার সাকসেসফুল! ✅"); });
+    }
+}
+
+function deleteOrderAction(key) {
+    if (!checkPermission()) return;
+    if (confirm("অর্ডারটি ডিলিট করতে চান? এটি আর ফিরে পাবেন না!")) {
+        db.ref('allOrders/' + key).remove()
+        .then(() => { playDel(); showToast("অর্ডার ডিলিট হয়েছে! 🗑️"); });
+    }
+}
