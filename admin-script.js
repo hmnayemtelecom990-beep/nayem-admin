@@ -1,5 +1,5 @@
 /* =========================================================
-   🚀 দেশি অফার - অ্যাডমিন মাস্টার স্ক্রিপ্ট (Trx ID ফিক্সড)
+   🚀 দেশি অফার - অ্যাডমিন মাস্টার স্ক্রিপ্ট (ধামাকা অফার ফিক্সড)
 ============================================================ */
 
 // ১. ফায়ারবেস কনফিগারেশন
@@ -18,22 +18,21 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-// ২. সিকিউরিটি ভেরিয়েবল
 const MASTER_ADMIN = "hmnayemtelecom990@gmail.com";
 let currentEmail = localStorage.getItem('master_admin_email') || "";
 
-// ৩. পারমিশন চেক (বাটন কন্ট্রোল)
+// ২. সিকিউরিটি চেক
 function checkPermission() {
     let saved = localStorage.getItem('master_admin_email') || "";
     if (saved.toLowerCase().trim() === MASTER_ADMIN.toLowerCase().trim()) {
         return true;
     } else {
-        alert("🚨 অনুমতি নেই!\nআগে গুগল লগইন করে " + MASTER_ADMIN + " ভেরিফাই করুন।");
+        alert("🚨 অনুমতি নেই! নিচে গিয়ে Google লগইন বাটনে ক্লিক করুন।");
         return false;
     }
 }
 
-// ৪. গুগল লগইন ফাংশন
+// ৩. গুগল লগইন
 function adminGoogleAuth() {
     var provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider).then((result) => {
@@ -41,18 +40,12 @@ function adminGoogleAuth() {
         localStorage.setItem('master_admin_email', email);
         currentEmail = email;
         playSuccess();
-        alert("✅ ভেরিফিকেশন সফল! এখন সব বাটন কাজ করবে।");
-        const profileInfo = document.getElementById('adminProfileInfo');
-        if(profileInfo) {
-            profileInfo.style.display = "block";
-            profileInfo.innerHTML = "লগইনঃ <b>" + email + "</b>";
-        }
-    }).catch((error) => {
-        alert("❌ লগইন ব্যর্থ: " + error.message);
-    });
+        alert("✅ ভেরিফিকেশন সফল!");
+        location.reload(); // সব রিফ্রেশ করে পারমিশন সচল করবে
+    }).catch((error) => { alert("❌ লগইন ব্যর্থ: " + error.message); });
 }
 
-// ৫. এইচএম ইউজারনেম পাসওয়ার্ড লগইন
+// ৪. এইচএম লগইন (Hm, nm)
 function checkLogin() {
     const u = document.getElementById('adminUser').value;
     const p = document.getElementById('adminPass').value;
@@ -65,61 +58,90 @@ function checkLogin() {
         loadAllOrders();
         if(currentEmail) {
             const info = document.getElementById('adminProfileInfo');
-            if(info) { info.style.display = "block"; info.innerHTML = "লগইনঃ <b>" + currentEmail + "</b>"; }
+            if(info) { info.style.display = "block"; info.innerHTML = "Verified: " + currentEmail; }
         }
-        showToast("লগইন সফল! 🔓");
     } else {
         document.getElementById('loginError').style.display = 'block';
-        setTimeout(() => { document.getElementById('loginError').style.display='none'; }, 3000);
     }
 }
 
-// ৬. অর্ডার ম্যানেজমেন্ট (ট্রানজেকশন আইডি সহ)
+// ৫. ধামাকা অফার (Notice) আপডেট ফাংশন
+function updateNotice() {
+    if (!checkPermission()) return; 
+    const text = document.getElementById('noticeText').value;
+    const price = document.getElementById('noticePrice').value;
+    const days = document.getElementById('noticeDays').value;
+
+    if (text && price) {
+        // ডাটাবেসে dhakaOffer নামে সেভ হবে
+        db.ref('dhakaOffer').set({
+            text: text,
+            price: price,
+            days: days
+        }).then(() => {
+            playSuccess();
+            alert("🚀 ধামাকা অফার পাবলিশ হয়েছে!");
+            closeModal('noticeModal');
+        });
+    } else { alert("সবগুলো বক্স পূরণ করুন!"); }
+}
+
+// ধামাকা অফার ডিলিট
+function deleteNotice() {
+    if (!checkPermission()) return; 
+    db.ref('dhakaOffer').remove().then(() => {
+        playDel();
+        alert("🗑️ অফার মুছে ফেলা হয়েছে!");
+        closeModal('noticeModal');
+    });
+}
+
+// ৬. হোমপেজে ধামাকা অফার দেখানো
+function loadNoticeDisplay() {
+    db.ref('dhakaOffer').on('value', snap => {
+        const displayDiv = document.getElementById('dhaka-notice-display');
+        const textShow = document.getElementById('noticeTextShow');
+        if (snap.exists()) {
+            let d = snap.val();
+            displayDiv.style.display = 'block';
+            textShow.innerHTML = `${d.text} - ৳${d.price} (${d.days} দিন)`;
+        } else {
+            displayDiv.style.display = 'none';
+        }
+    });
+}
+
+// ৭. অর্ডার লোড (Transaction ID সহ)
 function loadAllOrders() {
     db.ref('orders').on('value', snap => {
         const list = document.getElementById('adminOrderList');
-        const badge = document.getElementById('order-pending-badge');
         if (!list) return;
         list.innerHTML = "";
-        let pendingCount = 0;
-
+        
         if (!snap.exists()) {
-            list.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">কোনো অর্ডার নেই!</p>';
-            if(badge) badge.style.display = "none";
+            list.innerHTML = '<p style="text-align:center; color:#888;">অর্ডার নেই!</p>';
             return;
         }
 
         snap.forEach(child => {
             let o = child.val();
             let k = child.key;
-            if(o.status === "Pending") pendingCount++;
-
-            // ট্রানজেকশন আইডি ও মেথড বের করা (যাতে কোনোটা মিস না হয়)
             let trx = o.transactionId || o.trxID || o.trx || "নেই";
-            let method = o.paymentMethod || o.method || "N/A";
 
             list.innerHTML += `
-                <div class="order-card-item" style="background:#161b22; padding:15px; border-radius:12px; margin-bottom:12px; border:1px solid #333; border-left:5px solid ${o.status==='Success'?'#28a745':'#ffcc00'};">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span style="color:#00ffff; font-size:11px;">ID: ${o.customerId || 'User'}</span>
-                        <span style="color:${o.status==='Success'?'#28a745':'#ffcc00'}; font-size:12px; font-weight:bold;">${o.status}</span>
+                <div class="order-card-item" style="background:#161b22; padding:12px; border-radius:10px; margin-bottom:10px; border-left:4px solid ${o.status==='Success'?'#28a745':'#ffcc00'}; border:1px solid #333;">
+                    <div style="color:#00ffff; font-size:11px;">ID: ${o.customerId} | ${o.status}</div>
+                    <div style="color:#fff; font-weight:bold; margin:5px 0;">${o.offerName}</div>
+                    <div style="background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; margin-top:5px;">
+                        <div style="color:#eee; font-size:13px;">📱 নাম্বারঃ ${o.targetNumber}</div>
+                        <div style="color:#ffcc00; font-size:13px;">💳 Trx ID: <b style="color:#fff;">${trx}</b></div>
                     </div>
-                    
-                    <div style="color:#fff; font-weight:bold; font-size:15px; margin-bottom:8px;">📦 ${o.offerName}</div>
-                    
-                    <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; border: 1px solid #222;">
-                        <div style="color:#eee; font-size:13px; margin-bottom:4px;">📱 নাম্বারঃ <b style="color:#fff;">${o.targetNumber}</b></div>
-                        <div style="color:#ffcc00; font-size:13px; margin-bottom:4px;">💳 Trx ID: <b style="color:#fff; background:#000; padding:2px 6px; border-radius:4px;">${trx}</b></div>
-                        <div style="color:#00f2fe; font-size:12px;">🏦 মেথডঃ ${method} | ৳${o.price}</div>
-                    </div>
-                    
-                    <div style="display:flex; gap:10px; margin-top:12px;">
-                        <button onclick="updateStatus('${k}', 'Success')" style="flex:1; background:#28a745; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold;">সাকসেস</button>
-                        <button onclick="updateStatus('${k}', 'Rejected')" style="flex:1; background:#ff4b2b; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold;">রিজেক্ট</button>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button onclick="updateStatus('${k}', 'Success')" style="flex:1; background:#28a745; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer;">সাকসেস</button>
+                        <button onclick="updateStatus('${k}', 'Rejected')" style="flex:1; background:#ff4b2b; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer;">রিজেক্ট</button>
                     </div>
                 </div>`;
         });
-        if(badge) { badge.innerText = pendingCount; badge.style.display = pendingCount > 0 ? "block" : "none"; }
     });
 }
 
@@ -127,11 +149,10 @@ function updateStatus(key, status) {
     if (!checkPermission()) return; 
     db.ref('orders/' + key).update({ status: status }).then(() => {
         if(status === "Success") playSuccess();
-        showToast("অর্ডার " + status + " হয়েছে!");
     });
 }
 
-// ৭. অফার ম্যানেজমেন্ট
+// ৮. অফার ও অন্যান্য ফাংশন
 function addOffer() {
     if (!checkPermission()) return; 
     const title = document.getElementById('offTitle').value;
@@ -139,22 +160,9 @@ function addOffer() {
     const operator = document.getElementById('offOperator').value;
     const days = document.getElementById('offDays').value;
 
-    if (!title || !price) { showToast("তথ্য দিন!"); return; }
-
-    const data = {
-        id: Date.now().toString(),
-        title: title,
-        price: price,
-        dokanPrice: document.getElementById('offDokanPrice').value || "0",
-        condition: document.getElementById('offCondition').value || "N/A",
-        operator: operator,
-        days: days
-    };
-
+    const data = { id: Date.now().toString(), title: title, price: price, operator: operator, days: days };
     db.ref('offers/' + operator + '/' + days + '/' + data.id).set(data).then(() => {
-        playSuccess();
-        showToast("অফার যোগ হয়েছে!");
-        closeModal('addOfferModal');
+        playSuccess(); closeModal('addOfferModal');
     });
 }
 
@@ -162,57 +170,30 @@ function loadAdminOffers(sim) {
     const list = document.getElementById('admin-offer-list-modal');
     document.getElementById('viewSimTitle').innerText = sim;
     openModal('viewOffersModal');
-    list.innerHTML = '<p style="text-align:center; color:#00ffff;">লোড হচ্ছে...</p>';
-
     db.ref('offers/' + sim).on('value', snap => {
         list.innerHTML = "";
-        snap.forEach(daySnap => {
-            daySnap.forEach(offSnap => {
-                const off = offSnap.val();
-                list.innerHTML += `
-                <div style="background:#161b22; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; border:1px solid #333;">
-                    <div style="flex:1; color:#fff;">${off.title} (৳${off.price})</div>
-                    <button onclick="deleteOffer('${off.operator}','${off.days}','${off.id}')" style="background:none; border:none; color:red; font-size:18px;">🗑️</button>
-                </div>`;
-            });
-        });
+        snap.forEach(daySnap => { daySnap.forEach(offSnap => {
+            const off = offSnap.val();
+            list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; color:#fff;">
+                <span>${off.title} (৳${off.price})</span>
+                <button onclick="deleteOffer('${off.operator}','${off.days}','${off.id}')" style="color:red; background:none; border:none;">🗑️</button>
+            </div>`;
+        }); });
     });
 }
 
 function deleteOffer(op, d, id) {
     if (!checkPermission()) return; 
-    if (confirm("ডিলিট করতে চান?")) {
-        db.ref('offers/' + op + '/' + d + '/' + id).remove().then(() => {
-            playDel();
-            showToast("ডিলিট হয়েছে!");
-        });
-    }
+    if (confirm("ডিলিট করবেন?")) { db.ref('offers/' + op + '/' + d + '/' + id).remove(); }
 }
 
-// ৮. অন্যান্য ইউটিলিটি
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); playClick(); if(id==='userListModal') loadUserList(); }
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); playClick(); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function showToast(m) { const t = document.getElementById('toast'); if(t){ t.innerText=m; t.style.top="20px"; setTimeout(()=>t.style.top="-100px", 3000); } }
 function playClick() { document.getElementById('sndClick').play(); }
 function playDel() { document.getElementById('sndDelete').play(); }
 function playSuccess() { document.getElementById('sndSuccess').play(); }
+function loadTotalCount() { db.ref('offers').on('value', snap => { let c=0; snap.forEach(o=>o.forEach(d=>c+=d.numChildren())); document.getElementById('offer-count').innerText="মোট অফারঃ "+c; }); }
 
 window.onload = function() {
     document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('mainAdminContent').classList.add('hidden');
 };
-
-function loadTotalCount() { db.ref('offers').on('value', snap => { let c=0; snap.forEach(o=>o.forEach(d=>c+=d.numChildren())); document.getElementById('offer-count').innerText="মোট অফারঃ "+c; }); }
-function loadNoticeDisplay() { db.ref('dhakaOffer').on('value', s => { const d = document.getElementById('dhaka-notice-display'); if(s.exists()){ d.style.display='block'; document.getElementById('noticeTextShow').innerText=s.val().text; } else { d.style.display='none'; } }); }
-
-// ইউজার লিস্ট ফাংশন (যদি প্রয়োজন হয়)
-function loadUserList() {
-    const userListDiv = document.getElementById('adminUserList');
-    db.ref('users').on('value', snap => {
-        userListDiv.innerHTML = "";
-        snap.forEach(child => {
-            let u = child.val();
-            userListDiv.innerHTML += `<div style="padding:10px; border-bottom:1px solid #333; color:#fff;">${u.name} (${u.customerId})</div>`;
-        });
-    });
-}
