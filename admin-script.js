@@ -13,8 +13,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 /* =========================================================
-   🔒 সিকিউরিটি সিস্টেম (স্থায়ী জিমেইল লগইন)
+   🔒 সিকিউরিটি সিস্টেম (নিখুঁত পারমিশন ফিক্স)
 ============================================================ */
+// এখানে ইমেইলটি একদম ছোট হাতের অক্ষরে লিখে রাখা হলো
 const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; 
 
 // অ্যাপ চালু হওয়ার সময় মেমোরি থেকে জিমেইল টেনে আনা
@@ -22,14 +23,18 @@ let currentAdminEmail = localStorage.getItem('masterAdminEmail') || "";
 
 // পারমিশন চেক ফাংশন
 function checkPermission() {
+    // মেমোরিতে যা সেভ আছে তা ছোট হাতের করে চেক করছে
     let savedEmail = localStorage.getItem('masterAdminEmail') || "";
+    
     if (savedEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase().trim()) {
         return true;
     } else {
-        alert("🚨 অনুমতি নেই! আগে নিচে থেকে 'Google দিয়ে লগইন' করে আপনার জিমেইল ভেরিফাই করুন।");
+        // যদি না মিলে তবে এই মেসেজটি দেখাবে
+        alert("🚨 অনুমতি নেই!\nবর্তমানে লগইন করা ইমেইল: " + (savedEmail || "কিছুই নেই") + "\n\nসঠিক জিমেইল দিয়ে লগইন করুন।");
         return false;
     }
 }
+
 
 // গুগল অথেন্টিকেশন (একবার করলেই মেমোরিতে সেভ হবে)
 function adminGoogleAuth() {
