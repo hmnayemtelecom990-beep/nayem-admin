@@ -1,4 +1,4 @@
-// ১. ফায়ারবেস কনফিগারেশন (আপনার দেওয়া কনফিগারেশন অনুযায়ী)
+// ১. ফায়ারবেস কনফিগারেশন (আপনার দেওয়া তথ্য অনুযায়ী)
 var firebaseConfig = {
   apiKey: "AIzaSyAHO3ZPYWzTyEcPPNXv4rlxq4ut9fqfeJg",
   authDomain: "hmnayem-b9e55.firebaseapp.com",
@@ -13,56 +13,52 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 /* =========================================================
-   🔒 সিকিউরিটি সিস্টেম (নিখুঁত পারমিশন ফিক্স)
+   🔒 মাস্টার সিকিউরিটি ও জিমেইল সেভ সিস্টেম
 ============================================================ */
-// এখানে ইমেইলটি একদম ছোট হাতের অক্ষরে লিখে রাখা হলো
+// আপনার অরিজিনাল অ্যাডমিন ইমেইল
 const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; 
 
 // অ্যাপ চালু হওয়ার সময় মেমোরি থেকে জিমেইল টেনে আনা
 let currentAdminEmail = localStorage.getItem('masterAdminEmail') || ""; 
 
-// পারমিশন চেক ফাংশন
+// অনুমতি চেক ফাংশন (যাতে কাজ করার সময় বাধা না দেয়)
 function checkPermission() {
-    // মেমোরিতে যা সেভ আছে তা ছোট হাতের করে চেক করছে
     let savedEmail = localStorage.getItem('masterAdminEmail') || "";
     
+    // যদি মেমোরিতে জিমেইল থাকে এবং সেটি আপনার জিমেইল এর সাথে মিলে যায়
     if (savedEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase().trim()) {
         return true;
     } else {
-        // যদি না মিলে তবে এই মেসেজটি দেখাবে
-        alert("🚨 অনুমতি নেই!\nবর্তমানে লগইন করা ইমেইল: " + (savedEmail || "কিছুই নেই") + "\n\nসঠিক জিমেইল দিয়ে লগইন করুন।");
+        alert("🚨 অনুমতি নেই!\nআপনার জিমেইলটি ভেরিফাই করা নেই। নিচের 'Google দিয়ে লগইন' বাটনে ক্লিক করে " + MASTER_ADMIN_EMAIL + " দিয়ে লগইন করুন।");
         return false;
     }
 }
 
-
-// গুগল অথেন্টিকেশন (একবার করলেই মেমোরিতে সেভ হবে)
+// গুগল লগইন (এটি একবার করলেই মেমোরিতে সেভ হবে)
 function adminGoogleAuth() {
     var provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider).then((result) => {
         let user = result.user;
-        currentAdminEmail = user.email.toLowerCase().trim();
+        let loggedEmail = user.email.toLowerCase().trim();
         
-        // মেমোরিতে সেভ
-        localStorage.setItem('masterAdminEmail', currentAdminEmail);
+        // জিমেইলটি চিরস্থায়ীভাবে মেমোরিতে সেভ করা হচ্ছে
+        localStorage.setItem('masterAdminEmail', loggedEmail);
+        currentAdminEmail = loggedEmail;
         
         playSuccess();
-        alert("✅ ভেরিফিকেশন সফল! এখন থেকে আপনি কাজ করতে পারবেন।");
-        updateProfileUI(user.email);
+        alert("✅ অভিনন্দন! জিমেইল ভেরিফিকেশন সফল এবং সেভ হয়েছে। এখন আপনি সব কাজ করতে পারবেন।");
+        
+        const profileInfo = document.getElementById('adminProfileInfo');
+        if(profileInfo) {
+            profileInfo.style.display = "block";
+            profileInfo.innerHTML = `ভেরিফাইড অ্যাডমিনঃ <b>${user.email}</b>`;
+        }
     }).catch((error) => {
         alert("❌ গুগল লগইন ব্যর্থ: " + error.message);
     });
 }
 
-function updateProfileUI(email) {
-    const profileInfo = document.getElementById('adminProfileInfo');
-    if(profileInfo && email) {
-        profileInfo.style.display = "block";
-        profileInfo.innerHTML = `ভেরিফাইড জিমেইলঃ <b>${email}</b>`;
-    }
-}
-
-// ২. পাসওয়ার্ড লগইন (এটি প্রতিবার চাইবে)
+// ২. পাসওয়ার্ড লগইন (Hm, nm - প্রতিবার চাইবে)
 function checkLogin() {
   const user = document.getElementById('adminUser').value;
   const pass = document.getElementById('adminPass').value;
@@ -72,28 +68,34 @@ function checkLogin() {
     document.getElementById('loginOverlay').classList.add('hidden');
     document.getElementById('mainAdminContent').classList.remove('hidden');
     
-    // ডাটা লোড করা
+    // ডাটা লোড করা শুরু
     loadTotalCount();
     loadNoticeDisplay();
     loadAllOrders(); 
     
-    // আগে জিমেইল সেভ করা থাকলে সেটা দেখানো
-    if(currentAdminEmail) updateProfileUI(currentAdminEmail);
+    // যদি আগে জিমেইল সেভ করা থাকে তবে সেটি প্রোফাইলে দেখাবে
+    let saved = localStorage.getItem('masterAdminEmail');
+    if(saved) {
+        const profileInfo = document.getElementById('adminProfileInfo');
+        if(profileInfo) {
+            profileInfo.style.display = "block";
+            profileInfo.innerHTML = `ভেরিফাইড অ্যাডমিনঃ <b>${saved}</b>`;
+        }
+    }
     
-    showToast("লগইন সফল! 🔓");
+    showToast("স্বাগতম সোনা ভাই! 🔓");
   } else {
     document.getElementById('loginError').style.display = "block";
     setTimeout(() => { document.getElementById('loginError').style.display = "none"; }, 3000);
   }
 }
 
-// ৩. অর্ডার কন্ট্রোল
+// ৩. অর্ডার লিস্ট কন্ট্রোল (HTML এর adminOrderList আইডির সাথে মিল রাখা হয়েছে)
 function loadAllOrders() {
     db.ref('orders').on('value', snap => {
         const list = document.getElementById('adminOrderList');
         const badge = document.getElementById('order-pending-badge');
         if (!list) return;
-        
         list.innerHTML = "";
         let pendingCount = 0;
 
@@ -109,18 +111,14 @@ function loadAllOrders() {
             if(o.status === "Pending") pendingCount++;
 
             list.innerHTML += `
-                <div class="order-card-item" style="background:#161b22; padding:15px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status==='Success'?'#28a745':'#ffcc00'}; border:1px solid #333;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span style="color:#00ffff; font-size:12px;">ID: ${o.customerId}</span>
-                        <span style="color:${o.status==='Success'?'#28a745':'#ffcc00'}; font-size:12px; font-weight:bold;">${o.status}</span>
-                    </div>
-                    <div style="color:#fff; font-weight:600; margin-bottom:5px;">${o.offerName}</div>
-                    <div style="color:#eee; font-size:13px;">📱 নাম্বারঃ <b>${o.targetNumber}</b></div>
-                    <div style="color:#aaa; font-size:12px;">💰 দামঃ ৳${o.price} | Trx: ${o.transactionId}</div>
-                    
-                    <div style="display:flex; gap:10px; margin-top:12px;">
-                        <button onclick="updateStatus('${key}', 'Success')" style="flex:1; background:#28a745; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold;">সাকসেস</button>
-                        <button onclick="updateStatus('${key}', 'Rejected')" style="flex:1; background:#ff4b2b; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold;">রিজেক্ট</button>
+                <div class="order-card-item" style="background:#161b22; padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid #333; border-left:4px solid ${o.status==='Success'?'#28a745':'#ffcc00'};">
+                    <div style="color:#00ffff; font-size:12px; margin-bottom:5px;">ID: ${o.customerId} | Status: ${o.status}</div>
+                    <div style="color:#fff; font-weight:bold;">${o.offerName}</div>
+                    <div style="color:#eee; font-size:13px; margin:5px 0;">নাম্বারঃ ${o.targetNumber}</div>
+                    <div style="color:#aaa; font-size:12px;">টাকাঃ ৳${o.price} | Trx: ${o.transactionId}</div>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button onclick="updateStatus('${key}', 'Success')" style="flex:1; background:#28a745; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">সাকসেস</button>
+                        <button onclick="updateStatus('${key}', 'Rejected')" style="flex:1; background:#ff4b2b; color:#fff; border:none; padding:8px; border-radius:5px; cursor:pointer; font-weight:bold;">রিজেক্ট</button>
                     </div>
                 </div>`;
         });
@@ -136,11 +134,11 @@ function updateStatus(key, status) {
     if (!checkPermission()) return; 
     db.ref('orders/' + key).update({ status: status }).then(() => {
         if(status === "Success") playSuccess();
-        showToast("অর্ডার " + status + " হয়েছে! ✅");
+        showToast("অর্ডার " + status + " হয়েছে!");
     });
 }
 
-// ৪. অফার কন্ট্রোল (অ্যাড ও ডিলিট)
+// ৪. অফার যোগ ও ডিলিট
 function addOffer() {
   if (!checkPermission()) return; 
   const title = document.getElementById('offTitle').value;
@@ -148,14 +146,14 @@ function addOffer() {
   const operator = document.getElementById('offOperator').value;
   const days = document.getElementById('offDays').value;
 
-  if (!title || !price) { showToast("সব তথ্য পূরণ করুন! ⚠️"); return; }
+  if (!title || !price) { showToast("সব তথ্য দিন! ⚠️"); return; }
 
   const data = {
     id: Date.now().toString(),
     title: title,
     price: price,
-    dokanPrice: document.getElementById('offDokanPrice').value,
-    condition: document.getElementById('offCondition').value,
+    dokanPrice: document.getElementById('offDokanPrice').value || "0",
+    condition: document.getElementById('offCondition').value || "N/A",
     operator: operator,
     days: days
   };
@@ -171,7 +169,7 @@ function loadAdminOffers(sim) {
     const list = document.getElementById('admin-offer-list-modal');
     document.getElementById('viewSimTitle').innerText = sim + " অফার কন্ট্রোল";
     openModal('viewOffersModal');
-    list.innerHTML = '<p style="text-align:center; color:#00ffff;">লোড হচ্ছে...</p>';
+    list.innerHTML = '<p style="text-align:center; color:#00ffff; padding:20px;">লোড হচ্ছে...</p>';
 
     db.ref('offers/' + sim).on('value', snap => {
         list.innerHTML = "";
@@ -183,9 +181,9 @@ function loadAdminOffers(sim) {
             daySnap.forEach(offSnap => {
                 const off = offSnap.val();
                 list.innerHTML += `
-                <div class="offer-item" style="background:#161b22; padding:12px; border-radius:10px; margin-bottom:8px; display:flex; align-items:center; border:1px solid #333;">
+                <div class="offer-item" style="background:#161b22; padding:10px; border-radius:10px; margin-bottom:8px; display:flex; align-items:center; border:1px solid #333;">
                     <div style="flex:1;">
-                        <h4 style="margin:0; color:#fff;">${off.title}</h4>
+                        <h4 style="margin:0; color:#fff; font-size:14px;">${off.title}</h4>
                         <p style="margin:4px 0; font-size:12px; color:#00ffff;">${off.days} দিন | ৳${off.price}</p>
                     </div>
                     <button onclick="deleteOffer('${off.operator}','${off.days}','${off.id}')" style="background:none; border:none; color:#ff4b2b; cursor:pointer; font-size:18px;">🗑️</button>
@@ -200,7 +198,7 @@ function deleteOffer(op, d, id) {
   if (confirm("অফারটি ডিলিট করতে চান?")) {
     db.ref('offers/' + op + '/' + d + '/' + id).remove().then(() => {
         playDel();
-        showToast("অফারটি ডিলিট হয়েছে! 🗑️");
+        showToast("ডিলিট হয়েছে! 🗑️");
     });
   }
 }
@@ -215,22 +213,22 @@ function updateNotice() {
     if (text && price) {
         db.ref('dhakaOffer').set({ text: text, price: price, days: days }).then(() => {
             playSuccess();
-            showToast("ধামাকা অফার আপডেট হয়েছে! 🚀");
+            showToast("ধামাকা অফার পাবলিশ হয়েছে! 🚀");
             closeModal('noticeModal');
         });
-    } else { showToast("সব তথ্য দিন! ⚠️"); }
+    } else { showToast("তথ্য পূরণ করুন! ⚠️"); }
 }
 
 function deleteNotice() {
     if (!checkPermission()) return; 
     db.ref('dhakaOffer').remove().then(() => {
         playDel();
-        showToast("নোটিশ মুছে ফেলা হয়েছে! 🗑️");
+        showToast("মুছে ফেলা হয়েছে! 🗑️");
         closeModal('noticeModal');
     });
 }
 
-// ৬. ইউজার ম্যানেজমেন্ট
+// ৬. ইউজার লিস্ট কন্ট্রোল
 function loadUserList() {
     const userListDiv = document.getElementById('adminUserList');
     userListDiv.innerHTML = '<p style="text-align:center; color:#00ffff; padding:20px;">ইউজার লোড হচ্ছে...</p>';
@@ -245,13 +243,13 @@ function loadUserList() {
             let u = child.val();
             let isBlocked = u.isBlocked === true;
             userListDiv.innerHTML += `
-                <div class="user-card">
-                    <img src="${u.photo || 'https://ui-avatars.com/api/?name=U'}" class="user-img">
+                <div class="user-card" style="background:#161b22; padding:10px; margin-bottom:8px; border-radius:10px; border:1px solid #333; display:flex; align-items:center;">
+                    <img src="${u.photo || 'https://ui-avatars.com/api/?name=U'}" style="width:40px; height:40px; border-radius:50%; margin-right:10px;">
                     <div style="flex:1;">
-                        <h4 style="margin:0; color:#fff; font-size:14px;">${u.name}</h4>
+                        <h4 style="margin:0; color:#fff; font-size:13px;">${u.name}</h4>
                         <p style="margin:2px 0; color:#aaa; font-size:11px;">ID: ${u.customerId}</p>
                     </div>
-                    <button onclick="toggleUserBlock('${u.uid}', ${isBlocked})" class="block-btn" style="background:${isBlocked?'#28a745':'#ff4b2b'}; color:#fff;">
+                    <button onclick="toggleUserBlock('${u.uid}', ${isBlocked})" style="background:${isBlocked?'#28a745':'#ff4b2b'}; color:#fff; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">
                         ${isBlocked ? "আনব্লক" : "ব্লক"}
                     </button>
                 </div>`;
@@ -262,11 +260,11 @@ function loadUserList() {
 function toggleUserBlock(uid, currentStatus) {
     if (!checkPermission()) return; 
     db.ref('users/' + uid).update({ isBlocked: !currentStatus }).then(() => {
-        showToast("ইউজার স্ট্যাটাস আপডেট হয়েছে!");
+        showToast("ইউজার আপডেট হয়েছে!");
     });
 }
 
-// ৭. অন্যান্য ফাংশন (UI কন্ট্রোল)
+// ৭. UI ও সাউন্ড কন্ট্রোল
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); playClick(); if(id === 'userListModal') loadUserList(); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function showToast(message) {
@@ -298,6 +296,7 @@ function loadNoticeDisplay() {
     });
 }
 
+// প্রতিবার অ্যাপ খুললে পাসওয়ার্ড স্ক্রিন দেখাবে
 window.onload = function() {
     document.getElementById('loginOverlay').classList.remove('hidden');
     document.getElementById('mainAdminContent').classList.add('hidden');
