@@ -13,29 +13,32 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 /* =========================================================
-   🔒 মাস্টার সিকিউরিটি ভেরিয়েবল
+   🔒 মাস্টার সিকিউরিটি (সংশোধিত)
 ============================================================ */
-const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; // 👈 এখানে আপনার জিমেইলটি নির্ভুলভাবে আছে
-let currentAdminEmail = ""; // বর্তমানে লগইন করা ইমেইল এখানে জমা থাকবে
+// এখানে আপনার ইমেইলটি একদম ছোট হাতের অক্ষরে দিন
+const MASTER_ADMIN_EMAIL = "hmnayemtelecom990@gmail.com"; 
+let currentAdminEmail = ""; 
 
 // পারমিশন চেক ফাংশন
 function checkPermission() {
+    // লগইন করা ইমেইল আর মাস্টার ইমেইল তুলনা করা হচ্ছে
     if (currentAdminEmail.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase().trim()) {
         return true;
     } else {
+        alert("অনুমতি নেই! আপনার লগইন করা ইমেইল: " + currentAdminEmail + "\nপ্রয়োজনীয় ইমেইল: " + MASTER_ADMIN_EMAIL);
         showToast("আপনার এই কাজ করার অনুমতি নেই! 🚫");
-        playDel(); // ওয়ার্নিং সাউন্ড
+        playDel();
         return false;
     }
 }
 
-// নতুন টোস্ট ফাংশন (এনিমেশন নোটিফিকেশন)
+// নতুন টোস্ট ফাংশন
 function showToast(message) {
     const toast = document.getElementById('toast');
     if(toast) {
         toast.innerText = message;
-        toast.style.top = "20px"; // টোস্ট দেখাবে
-        setTimeout(() => { toast.style.top = "-100px"; }, 3000); // ৩ সেকেন্ড পর লুকাবে
+        toast.style.top = "20px";
+        setTimeout(() => { toast.style.top = "-100px"; }, 3000);
     }
 }
 
@@ -112,9 +115,9 @@ function loadAdminOffers(sim) {
     });
 }
 
-// ৫. অফার যোগ করা (সিকিউরিটি চেক যুক্ত)
+// ৫. অফার যোগ করা
 function addOffer() {
-  if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+  if (!checkPermission()) return; 
 
   const title = document.getElementById('offTitle').value;
   const price = document.getElementById('offPrice').value;
@@ -140,9 +143,9 @@ function addOffer() {
   });
 }
 
-// ৬. ধামাকা অফার আপডেট (সিকিউরিটি চেক যুক্ত)
+// ৬. ধামাকা অফার আপডেট
 function updateNotice() {
-    if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+    if (!checkPermission()) return; 
 
     const text = document.getElementById('noticeText').value;
     const price = document.getElementById('noticePrice').value;
@@ -158,7 +161,7 @@ function updateNotice() {
 }
 
 function deleteNotice() {
-    if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+    if (!checkPermission()) return; 
     db.ref('dhakaOffer').remove().then(() => {
         playDel();
         showToast("নোটিশ মুছে ফেলা হয়েছে! 🗑️");
@@ -166,9 +169,7 @@ function deleteNotice() {
     });
 }
 
-/* =========================================================
-   👥 ইউজার লিস্ট ও ব্লক সিস্টেম (সিকিউরিটি চেক যুক্ত)
-============================================================ */
+// ইউজার ম্যানেজমেন্ট
 function loadUserList() {
     const userListDiv = document.getElementById('adminUserList');
     userListDiv.innerHTML = '<p style="text-align:center; color:#00ffff; padding:20px;">ইউজার লোড হচ্ছে...</p>';
@@ -204,7 +205,7 @@ function loadUserList() {
 }
 
 function toggleUserBlock(uid, currentStatus) {
-    if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+    if (!checkPermission()) return; 
     let confirmMsg = currentStatus ? "আনব্লক করতে চান?" : "ব্লক করতে চান?";
     if (confirm(confirmMsg)) {
         db.ref('users/' + uid).update({ isBlocked: !currentStatus }).then(() => {
@@ -213,9 +214,7 @@ function toggleUserBlock(uid, currentStatus) {
     }
 }
 
-/* =========================================================
-   📩 অর্ডার ম্যানেজমেন্ট (সিকিউরিটি চেক যুক্ত)
-============================================================ */
+// অর্ডার ম্যানেজমেন্ট
 function copyNum(text) {
     navigator.clipboard.writeText(text).then(() => {
         showToast("কপি হয়েছে! 📋");
@@ -275,16 +274,15 @@ function loadAllOrders() {
 }
 
 function updateStatus(key, status) {
-    if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+    if (!checkPermission()) return; 
     db.ref('orders/' + key).update({ status: status }).then(() => {
         if(status === "Success") playSuccess();
         showToast("অর্ডার " + status + " হয়েছে! ✅");
     });
 }
 
-// ৭. ডিলিট ও কাউন্ট
 function deleteOffer(op, d, id) {
-  if (!checkPermission()) return; // মাস্টার জিমেইল চেক
+  if (!checkPermission()) return; 
   if (confirm("অফারটি ডিলিট করতে চান?")) {
     playDel();
     db.ref('offers/' + op + '/' + d + '/' + id).remove().then(() => {
@@ -316,28 +314,24 @@ function loadNoticeDisplay() {
 }
 
 /* =========================================================
-   🔐 অ্যাডমিন গুগল অথেন্টিকেশন লজিক (আপডেট করা)
+   🔐 গুগল অথেন্টিকেশন (একদম সঠিক লগইন)
 ============================================================ */
 function adminGoogleAuth() {
     var provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider).then((result) => {
         let user = result.user;
         
-        // এখানে ইমেইলটি ছোট হাতের করা হয়েছে যাতে মাস্টার ইমেইলের সাথে মিলে যায়
+        // লগইন করা ইমেইলটি সেভ করা হচ্ছে
         currentAdminEmail = user.email.toLowerCase().trim(); 
         
         playSuccess();
-        showToast("গুগল ভেরিফিকেশন সফল! ✅");
+        alert("গুগল ভেরিফিকেশন সফল!\nআপনার ইমেইল: " + currentAdminEmail);
         
         const profileInfo = document.getElementById('adminProfileInfo');
         if(profileInfo) {
             profileInfo.style.display = "block";
-            profileInfo.innerHTML = `
-                <img src="${user.photoURL}" style="width:30px; border-radius:50%; vertical-align:middle; margin-right:5px;">
-                লগইন আছেন: <b>${user.email}</b>
-            `;
+            profileInfo.innerHTML = `লগইন আছেন: <b>${user.email}</b>`;
         }
-        console.log("Logged In As Master:", currentAdminEmail);
     }).catch((error) => {
         showToast("গুগল লগইন ব্যর্থ! ❌");
         console.error(error);
