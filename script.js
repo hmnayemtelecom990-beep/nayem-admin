@@ -111,68 +111,48 @@ function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function playClick() { if(document.getElementById('sndClick')) document.getElementById('sndClick').play(); }
 function playDel() { if(document.getElementById('sndDelete')) document.getElementById('sndDelete').play(); }
 function playSuccess() { if(document.getElementById('sndSuccess')) document.getElementById('sndSuccess').play(); }
-
-// ৫. অফার ম্যানেজমেন্ট
-function loadAdminOffers(sim) {
-    const list = document.getElementById('admin-offer-list-modal');
-    document.getElementById('viewSimTitle').innerText = sim + " কন্ট্রোল";
-    openModal('viewOffersModal');
-    list.innerHTML = '<p style="text-align:center; color:#00ffff;">লোড হচ্ছে...</p>';
-
-    db.ref('offers/' + sim).on('value', snap => {
-        list.innerHTML = "";
-        if (!snap.exists()) {
-            list.innerHTML = `<p style="text-align:center; color:#ff4b2b; padding:20px;">কোনো অফার নেই।</p>`;
-            return;
-        }
-        snap.forEach(daySnap => {
-            daySnap.forEach(offSnap => {
-                const off = offSnap.val();
-                list.innerHTML += `
-                <div style="background:#161b22; padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid #7aff00; display:flex; align-items:center;">
-                    <div style="flex:1;">
-                        <h4 style="margin:0; color:#fff; font-size:14px;">${off.title}</h4>
-                        <p style="margin:4px 0; font-size:12px; color:#00ffff;">${off.days} দিন | ৳${off.price}</p>
-                    </div>
-                    <button onclick="deleteOffer('${off.operator}','${off.days}','${off.id}')" style="background:#ff001f; border:#00ffff; color:#000000; font-size:18px; cursor:pointer;">🗑️</button>
-                </div>`;
-            });
-        });
-    });
-}
-
+// ৫. অফার ম্যানেজমেন্ট (Updated & Fixed)
 function addOffer() {
   if (!checkPermission()) return;
-  const title = document.getElementById('offTitle').value;
-  const price = document.getElementById('offPrice').value;
-  const operator = document.getElementById('offOperator').value;
-  const days = document.getElementById('offDays').value;
+  
+  const title = document.getElementById('offTitle').value.trim();
+  const price = document.getElementById('offPrice').value.trim();
+  const operator = document.getElementById('offOperator').value; // ড্রপডাউন থেকে সিম
+  const days = document.getElementById('offDays').value;       // ড্রপডাউন থেকে দিন
 
-  if (!title || !price) { showToast("তথ্য পূরণ করুন! ⚠️"); return; }
+  // সবগুলো তথ্য পূরণ করা হয়েছে কি না চেক করা
+  if (!title || !price || operator === "" || days === "") { 
+    showToast("সিম, দিন, টাইটেল এবং দাম—সবগুলো সঠিকভাবে দিন! ⚠️"); 
+    return; 
+  }
 
   const data = {
-    id: Date.now().toString(),
-    title: title, price: price,
+    id: "ID" + Date.now(),
+    title: title, 
+    price: price,
     dokanPrice: document.getElementById('offDokanPrice').value || "0",
     condition: document.getElementById('offCondition').value || "N/A",
-    operator: operator, days: days
+    operator: operator, 
+    days: days
   };
 
-  db.ref('offers/' + operator + '/' + days + '/' + data.id).set(data).then(() => {
-    playSuccess();
-    showToast("অফার যোগ হয়েছে! ✅");
-    closeModal('addOfferModal');
-  }).catch(e => { showToast("❌ ডাটাবেস পারমিশন এরর!"); });
-}
+  // ডাটাবেসে পাঠানোর আগে একটি মেসেজ
+  showToast("অফার সেভ হচ্ছে... ⏳");
 
-function deleteOffer(op, d, id) {
-  if (!checkPermission()) return;
-  if (confirm("অফারটি ডিলিট করতে চান?")) {
-    db.ref('offers/' + op + '/' + d + '/' + id).remove().then(() => {
-        playDel();
-        showToast("ডিলিট হয়েছে! 🗑️");
-    }).catch(e => { showToast("❌ ডাটাবেস পারমিশন এরর!"); });
-  }
+  db.ref('offers/' + operator + '/' + days + '/' + data.id).set(data)
+  .then(() => {
+    playSuccess();
+    showToast("অফার সফলভাবে যোগ হয়েছে! ✅");
+    closeModal('addOfferModal');
+    
+    // ইনপুট বক্স খালি করা
+    document.getElementById('offTitle').value = "";
+    document.getElementById('offPrice').value = "";
+  })
+  .catch(e => { 
+    console.error("Firebase Error:", e);
+    showToast("ডাটাবেস পারমিশন এরর! রুলস চেক করুন। ❌"); 
+  });
 }
 
 // ৬. ধামাকা অফার (Notice)
